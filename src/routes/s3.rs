@@ -1,4 +1,4 @@
-use crate::app::AppState;
+use crate::app::{self, AppState};
 use actix_multipart::{form::tempfile::TempFile, form::text::Text, form::MultipartForm};
 use actix_web::{web, Error, HttpResponse, Responder};
 use minio::s3::{
@@ -14,36 +14,45 @@ pub struct UploadForm {
     username: Text<String>,
 }
 
-pub async fn upload_image(
+async fn upload_image_intern(
     app_state: web::Data<AppState>,
     MultipartForm(form): MultipartForm<UploadForm>,
-) -> impl Responder {
+) -> Result<(), minio::s3::error::Error> {
     println!("{:?}", form);
 
     let minio_client = &app_state.minio_client;
-
     let bucket_name = "s3-client-test";
-    let object_path = format!("{}/{}", form.username.0, form.file.file_name.unwrap());
+    let object_path = format!(
+        "{}/{}",
+        form.username.0,
+        form.file.file_name.expect("filename missing")
+    );
     let file_path = form.file.file.path();
     let content = ObjectContent::from(file_path);
 
     let exists = minio_client
-        .bucket_exists(&BucketExistsArgs::new(bucket_name).unwrap())
-        .await
-        .unwrap();
+        .bucket_exists(&BucketExistsArgs::new(bucket_name)?)
+        .await?;
 
     if !exists {
         minio_client
-            .make_bucket(&MakeBucketArgs::new(bucket_name).unwrap())
-            .await
-            .unwrap();
+            .make_bucket(&MakeBucketArgs::new(bucket_name)?)
+            .await?;
     }
 
-    match minio_client
+    minio_client
         .put_object_content(bucket_name, &object_path, content)
         .send()
-        .await
-    {
+        .await?;
+
+    Ok(())
+}
+
+pub async fn upload_image(
+    app_state: web::Data<AppState>,
+    form: MultipartForm<UploadForm>,
+) -> impl Responder {
+    match upload_image_intern(app_state, form).await {
         Ok(_) => HttpResponse::Ok().body("Image uploaded successfully"),
         Err(e) => {
             HttpResponse::InternalServerError().body(format!("Failed to upload image: {}", e))
