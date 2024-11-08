@@ -27,7 +27,7 @@ pub async fn upload_image(
     let file_path = form.file.file.path();
     let content = ObjectContent::from(file_path);
 
-    let exists: bool = minio_client
+    let exists = minio_client
         .bucket_exists(&BucketExistsArgs::new(bucket_name).unwrap())
         .await
         .unwrap();
