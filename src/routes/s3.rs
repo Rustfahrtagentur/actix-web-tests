@@ -1,4 +1,4 @@
-use crate::app::{self, AppState};
+use crate::app::AppState;
 use actix_multipart::{form::tempfile::TempFile, form::text::Text, form::MultipartForm};
 use actix_web::{web, Error, HttpResponse, Responder};
 use minio::s3::{
@@ -6,6 +6,8 @@ use minio::s3::{
     builders::ObjectContent,
     types::S3Api,
 };
+
+const BUCKET_NAME: &str = "s3-client-test";
 
 #[derive(Debug, MultipartForm)]
 pub struct UploadForm {
@@ -21,15 +23,14 @@ async fn upload_image_intern(
     println!("{:?}", form);
 
     let minio_client = &app_state.minio_client;
-    let bucket_name = "s3-client-test";
 
     let exists = minio_client
-        .bucket_exists(&BucketExistsArgs::new(bucket_name)?)
+        .bucket_exists(&BucketExistsArgs::new(BUCKET_NAME)?)
         .await?;
 
     if !exists {
         minio_client
-            .make_bucket(&MakeBucketArgs::new(bucket_name)?)
+            .make_bucket(&MakeBucketArgs::new(BUCKET_NAME)?)
             .await?;
     }
 
@@ -41,7 +42,7 @@ async fn upload_image_intern(
     let content = ObjectContent::from(form.file.file.path());
 
     minio_client
-        .put_object_content(bucket_name, &object_path, content)
+        .put_object_content(BUCKET_NAME, &object_path, content)
         .send()
         .await?;
 
@@ -67,11 +68,11 @@ pub async fn get_image(
     let minio_client = &app_state.minio_client;
 
     let (username, filename) = path.into_inner();
-    let bucket_name = "s3-client-test";
+
     let object_path = format!("{}/{}", username, filename);
 
     match minio_client
-        .get_object(bucket_name, &object_path)
+        .get_object(BUCKET_NAME, &object_path)
         .send()
         .await
     {
