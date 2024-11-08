@@ -18,7 +18,7 @@ async fn main() -> std::io::Result<()> {
     let s3_connection_string = format!("{}:{}", &config.s3.host, &config.s3.port)
         .as_str()
         .parse()
-        .unwrap();
+        .expect("could not parse S3 connection string");
     let minio_client = ClientBuilder::new(s3_connection_string)
         .provider(Some(Box::new(static_provider)))
         .build()
