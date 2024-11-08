@@ -1,6 +1,7 @@
 use crate::app::AppState;
 use actix_multipart::{form::tempfile::TempFile, form::text::Text, form::MultipartForm};
 use actix_web::{web, Error, HttpResponse, Responder};
+use actix_web::body::BoxBody;
 use minio::s3::{
     args::{BucketExistsArgs, MakeBucketArgs},
     builders::ObjectContent,
@@ -76,15 +77,16 @@ pub async fn get_image(
         .send()
         .await
     {
-        Ok(_response) => {
+        Ok(response) => {
             // let foo = response.content.to_stream().await?;
-            // let foo2 = response.content.to_segmented_bytes().await?;
-            // let foo3 = &foo2.to_bytes();
+            let foo2 = response.content.to_segmented_bytes().await?;
+            let foo3 = foo2.to_bytes();
+            let foo4 = BoxBody::new(foo3);
             // let mut buffer = Vec::new();
             // response.read_to_end(&mut buffer).unwrap();
-            // Ok(HttpResponse::Ok().content_type("application/octet-stream").body(&foo3))
+            Ok(HttpResponse::Ok().content_type("image/png").body(foo4))
 
-            Ok(HttpResponse::NotImplemented().finish())
+            // Ok(HttpResponse::NotImplemented().finish())
         }
         Err(e) => {
             Ok(HttpResponse::InternalServerError().body(format!("Failed to get image: {}", e)))
