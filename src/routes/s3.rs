@@ -6,7 +6,6 @@ use minio::s3::{
     builders::ObjectContent,
     types::S3Api,
 };
-use std::path::PathBuf;
 
 #[derive(Debug, MultipartForm)]
 pub struct UploadForm {
@@ -25,9 +24,8 @@ pub async fn upload_image(
 
     let bucket_name = "s3-client-test";
     let object_path = format!("{}/{}", form.username.0, form.file.file_name.unwrap());
-    let file_path = PathBuf::from(form.file.file.path());
-
-    let content = ObjectContent::from(file_path.as_path());
+    let file_path = form.file.file.path();
+    let content = ObjectContent::from(file_path);
 
     let exists: bool = minio_client
         .bucket_exists(&BucketExistsArgs::new(bucket_name).unwrap())
