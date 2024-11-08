@@ -1,0 +1,10 @@
+s3:
+  host: "127.0.0.1"
+  port: 9000
+  access_key: ""
+  secret_key: ""
+mqtt:
+  host: "127.0.0.1"
+  port: 1883
+  username: ""
+  password: ""

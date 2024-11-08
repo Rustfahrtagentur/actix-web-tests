@@ -1,0 +1,17 @@
+[package]
+name = "s3-client"
+version = "0.1.0"
+edition = "2021"
+
+
+[lib]
+path = "src/lib.rs"
+
+
+[dependencies]
+actix-web = "4"
+actix-multipart = "0.7"
+config = "0.14"
+minio = { git = "https://github.com/minio/minio-rs.git", branch = "master" }
+uuid = { version = "1.11.0", features = ["v4"] }
+serde = { version = "1.0.210", features = ["derive"] }
