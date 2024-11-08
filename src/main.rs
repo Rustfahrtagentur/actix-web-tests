@@ -5,7 +5,7 @@ use s3_client::{
     configuration::get_configuration,
     routes::{get_image, upload_image},
 };
-use std::{fs, path::Path, sync::Arc};
+use std::{fs, sync::Arc};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -42,7 +42,7 @@ async fn main() -> std::io::Result<()> {
 }
 
 async fn index() -> impl Responder {
-    let path = Path::new("static/index.html");
+    let path = "static/index.html";
     match fs::read_to_string(path) {
         Ok(contents) => HttpResponse::Ok().content_type("text/html").body(contents),
         Err(_) => HttpResponse::InternalServerError().body("Failed to load index.html"),
