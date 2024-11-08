@@ -22,13 +22,6 @@ async fn upload_image_intern(
 
     let minio_client = &app_state.minio_client;
     let bucket_name = "s3-client-test";
-    let object_path = format!(
-        "{}/{}",
-        form.username.0,
-        form.file.file_name.expect("filename missing")
-    );
-    let file_path = form.file.file.path();
-    let content = ObjectContent::from(file_path);
 
     let exists = minio_client
         .bucket_exists(&BucketExistsArgs::new(bucket_name)?)
@@ -39,6 +32,13 @@ async fn upload_image_intern(
             .make_bucket(&MakeBucketArgs::new(bucket_name)?)
             .await?;
     }
+
+    let object_path = format!(
+        "{}/{}",
+        form.username.0,
+        form.file.file_name.expect("filename missing")
+    );
+    let content = ObjectContent::from(form.file.file.path());
 
     minio_client
         .put_object_content(bucket_name, &object_path, content)
