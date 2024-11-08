@@ -10,15 +10,23 @@ use std::{fs, sync::Arc};
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     // load config
-    let config = get_configuration().expect("Failed to read configuration.");
+    let s3_client::configuration::S3Settings {
+        host,
+        port,
+        access_key,
+        secret_key,
+    } = get_configuration()
+        .expect("Failed to read configuration.")
+        .s3;
 
     // Create the MinIO client using ClientBuilder
-    let static_provider = StaticProvider::new(&config.s3.access_key, &config.s3.secret_key, None);
-
-    let s3_connection_string = format!("{}:{}", &config.s3.host, &config.s3.port)
+    let static_provider = StaticProvider::new(&access_key, &secret_key, None);
+    // Build S3 connection string
+    let s3_connection_string = format!("{}:{}", &host, &port)
         .as_str()
         .parse()
         .expect("could not parse S3 connection string");
+    // Build client
     let minio_client = ClientBuilder::new(s3_connection_string)
         .provider(Some(Box::new(static_provider)))
         .build()
