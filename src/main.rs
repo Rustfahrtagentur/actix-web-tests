@@ -2,39 +2,27 @@ use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use minio::s3::{client::ClientBuilder, creds::StaticProvider};
 use s3_client::{
     app::AppState,
-    configuration::get_configuration,
+    configuration::{get_configuration, MqttSettings, S3Settings},
+    error::Error,
     routes::{get_image, upload_image},
 };
-use std::{fs, sync::Arc};
+use std::{fs, sync::Arc, time::Duration};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     // load config
-    let s3_client::configuration::S3Settings {
-        host,
-        port,
-        access_key,
-        secret_key,
-    } = get_configuration()
-        .expect("Failed to read configuration.")
-        .s3;
+    let config = get_configuration().expect("Failed to read configuration.");
 
-    // Create the MinIO client using ClientBuilder
-    let static_provider = StaticProvider::new(&access_key, &secret_key, None);
-    // Build S3 connection string
-    let s3_connection_string = format!("{}:{}", &host, &port)
-        .as_str()
-        .parse()
-        .expect("could not parse S3 connection string");
-    // Build client
-    let minio_client = ClientBuilder::new(s3_connection_string)
-        .provider(Some(Box::new(static_provider)))
-        .build()
-        .expect("Failed to create MinIO client");
+    // create instance of mqtt client
+    let mqtt_client = create_mqtt_client(&config.mqtt).expect("Failed to create mqtt client.");
 
-    // Wrap the client in an Arc and store in AppState
+    // create instance of s3 client
+    let minio_client = create_s3_client(&config.s3).await.expect("Failed to create s3.");
+
+    // Wrap the clients in an Arc and store in AppState
     let app_state = web::Data::new(AppState {
         minio_client: Arc::new(minio_client),
+        mqtt_client: Arc::new(mqtt_client),
     });
 
     HttpServer::new(move || {
@@ -47,6 +35,42 @@ async fn main() -> std::io::Result<()> {
     .bind(("127.0.0.1", 8080))?
     .run()
     .await
+}
+
+async fn create_s3_client(s3settings: &S3Settings) -> Result<minio::s3::Client, Error> {
+    // Create the MinIO client using ClientBuilder
+    let static_provider = StaticProvider::new(&s3settings.access_key, &s3settings.secret_key, None);
+    // Build S3 connection string
+    let connection_string = format!("{}:{}", &s3settings.host, &s3settings.port)
+        .as_str()
+        .parse()?;
+
+    let client = ClientBuilder::new(connection_string)
+        .provider(Some(Box::new(static_provider)))
+        .build()?;
+
+    Ok(client)
+}
+
+fn create_mqtt_client(mqtt_settings: &MqttSettings) -> Result<paho_mqtt::Client, Error> {
+    let host = &mqtt_settings.host;
+    let port = &mqtt_settings.port;
+
+    // Create a client & define connect options
+    let mqtt_client = paho_mqtt::Client::new(format!("tcp://{host}:{port}"))?;
+
+    let conn_opts = paho_mqtt::ConnectOptionsBuilder::new()
+        .keep_alive_interval(Duration::from_secs(20))
+        .clean_session(true)
+        .finalize();
+
+    mqtt_client.connect(conn_opts)?;
+
+    // Create a message and publish it
+    let msg = paho_mqtt::Message::new("rustfahrtagentur", "Hello world! 23", 2);
+    mqtt_client.publish(msg)?;
+
+    Ok(mqtt_client)
 }
 
 async fn index() -> impl Responder {

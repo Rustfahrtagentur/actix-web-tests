@@ -13,5 +13,6 @@ actix-web = "4"
 actix-multipart = "0.7"
 config = "0.14"
 minio = { git = "https://github.com/minio/minio-rs.git", branch = "master" }
+paho-mqtt = { version = "0.12", default-features=false, features=["bundled"] }
 uuid = { version = "1.11.0", features = ["v4"] }
 serde = { version = "1.0.210", features = ["derive"] }
