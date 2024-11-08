@@ -1,24 +1,32 @@
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use minio::s3::{client::ClientBuilder, creds::StaticProvider};
-use s3_client::app::AppState;
-use s3_client::configuration::get_configuration;
-use s3_client::routes::{get_image, upload_image};
-use std::fs;
-use std::path::Path;
-use std::sync::Arc;
+use s3_client::{
+    app::AppState,
+    configuration::get_configuration,
+    routes::{get_image, upload_image},
+};
+use std::{fs, sync::Arc};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     // load config
-    let config = get_configuration().expect("Failed to read configuration.");
+    let s3_client::configuration::S3Settings {
+        host,
+        port,
+        access_key,
+        secret_key,
+    } = get_configuration()
+        .expect("Failed to read configuration.")
+        .s3;
 
     // Create the MinIO client using ClientBuilder
-    let static_provider = StaticProvider::new(&config.s3.access_key, &config.s3.secret_key, None);
-
-    let s3_connection_string = format!("{}:{}", &config.s3.host, &config.s3.port)
+    let static_provider = StaticProvider::new(&access_key, &secret_key, None);
+    // Build S3 connection string
+    let s3_connection_string = format!("{}:{}", &host, &port)
         .as_str()
         .parse()
-        .unwrap();
+        .expect("could not parse S3 connection string");
+    // Build client
     let minio_client = ClientBuilder::new(s3_connection_string)
         .provider(Some(Box::new(static_provider)))
         .build()
@@ -42,7 +50,7 @@ async fn main() -> std::io::Result<()> {
 }
 
 async fn index() -> impl Responder {
-    let path = Path::new("static/index.html");
+    let path = "static/index.html";
     match fs::read_to_string(path) {
         Ok(contents) => HttpResponse::Ok().content_type("text/html").body(contents),
         Err(_) => HttpResponse::InternalServerError().body("Failed to load index.html"),
