@@ -1,11 +1,11 @@
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use minio::s3::{client::ClientBuilder, creds::StaticProvider};
-use s3_client::app::AppState;
-use s3_client::configuration::get_configuration;
-use s3_client::routes::{get_image, upload_image};
-use std::fs;
-use std::path::Path;
-use std::sync::Arc;
+use s3_client::{
+    app::AppState,
+    configuration::get_configuration,
+    routes::{get_image, upload_image},
+};
+use std::{fs, path::Path, sync::Arc};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
