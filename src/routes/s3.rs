@@ -1,11 +1,11 @@
 use crate::app::AppState;
-use actix_multipart::form::tempfile::TempFile;
-use actix_multipart::form::text::Text;
-use actix_multipart::form::MultipartForm;
+use actix_multipart::{form::tempfile::TempFile, form::text::Text, form::MultipartForm};
 use actix_web::{web, Error, HttpResponse, Responder};
-use minio::s3::args::{BucketExistsArgs, MakeBucketArgs};
-use minio::s3::builders::ObjectContent;
-use minio::s3::types::S3Api;
+use minio::s3::{
+    args::{BucketExistsArgs, MakeBucketArgs},
+    builders::ObjectContent,
+    types::S3Api,
+};
 use std::path::PathBuf;
 
 #[derive(Debug, MultipartForm)]
